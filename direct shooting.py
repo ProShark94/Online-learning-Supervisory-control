@@ -2,7 +2,7 @@ import casadi as ca
 import numpy as np
 import matplotlib.pyplot as plt
 
-# === Constants ===
+# parameters
 m = 1.0       # mass (kg)
 I = 0.01      # moment of inertia (kg·m²)
 g = 9.81      # gravity (m/s²)
@@ -11,22 +11,22 @@ T = 5.0       # total time (s)
 N = 100       # number of time steps
 dt = T / N    # time step
 
-# === Symbolic Decision Variables ===
+# casadi setup
 X = ca.MX.sym('X', 6, N+1)   # States: [x, y, theta, vx, vy, omega]
 U = ca.MX.sym('U', 2, N)     # Controls: [F, tau]
 
-# === Initial and Goal States ===
+#goal state
 x0 = np.array([0, 0, 0, 0, 0, 0])
 xg = np.array([5, 5, 0, 0, 0, 0])
 
-# === Objective Function ===
+#cost function
 cost = 0
 for k in range(N):
     state_error = X[:, k] - xg
     control = U[:, k]
     cost += ca.mtimes([state_error.T, state_error]) + rho * ca.mtimes([control.T, control])
 
-# === Dynamics Constraints (Euler integration) ===
+# dynamics constraints
 constraints = []
 for k in range(N):
     xk = X[:, k]
@@ -46,32 +46,32 @@ for k in range(N):
     x_next = xk + dt * dx
     constraints.append(X[:, k+1] - x_next)  # enforce dynamics
 
-# === Boundary Conditions ===
+#constraints on control inputs
 constraints.append(X[:, 0] - x0)   # initial state
 constraints.append(X[:, -1] - xg)  # final state
 
-# === Stack All Constraints ===
+# control limits
 g = ca.vertcat(*constraints)
 
-# === NLP Problem Setup ===
+# NLP
 vars = ca.vertcat(ca.reshape(X, -1, 1), ca.reshape(U, -1, 1))
 nlp = {'x': vars, 'f': cost, 'g': g}
 solver = ca.nlpsol('solver', 'ipopt', nlp)
 
-# === Initial Guess ===
+# guess
 x_init = np.linspace(x0, xg, N+1).T
 u_init = np.zeros((2, N))
 vars_init = np.concatenate([x_init.flatten(order='F'), u_init.flatten(order='F')])
 
-# === Solve NLP ===
+# NLP
 sol = solver(x0=vars_init, lbg=0, ubg=0)
 w_opt = sol['x'].full().flatten()
 
-# === Extract Solution ===
+# Solution
 X_opt = w_opt[:(6*(N+1))].reshape((6, N+1), order='F')
 U_opt = w_opt[(6*(N+1)):].reshape((2, N), order='F')
 
-# === Plot Trajectory ===
+# Plotting
 plt.figure(figsize=(6, 6))
 plt.plot(X_opt[0], X_opt[1], label='Optimal trajectory')
 plt.scatter(x0[0], x0[1], color='red', label='Start')
@@ -84,7 +84,7 @@ plt.legend()
 plt.axis("equal")
 plt.show()
 
-# === Optional: Plot Controls ===
+# Plotting control inputs
 t_grid = np.linspace(0, T, N)
 plt.figure()
 plt.subplot(2, 1, 1)
