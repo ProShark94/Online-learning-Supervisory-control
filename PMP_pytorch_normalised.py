@@ -34,7 +34,7 @@ def compute_combined_obstacle_loss(state):
     barrier = torch.exp(-((d2 - radius**2) / 0.01).clamp(min=-5, max=5))
     return barrier.sum()
 
-# 🔧 Smoothness regularizer
+# Smoothness regularizer
 def compute_control_smoothness(F, tau):
     return ((F[1:] - F[:-1])**2 + (tau[1:] - tau[:-1])**2).mean()
 
@@ -103,7 +103,7 @@ def compute_loss():
         1000 * x_end_loss +
         1000 * lam_end_loss +
         10000 * obs_loss +
-        100 * smooth_loss  # 🧘 control smoothness regularizer
+        100 * smooth_loss  # control smoothness regularizer
     )
     return total_loss, cost, dyn_loss, lam_loss, obs_loss, smooth_loss
 
@@ -120,15 +120,15 @@ def closure():
         print(f"Iter {len(loss_history)} | Loss: {loss:.2f} | Obs: {obs:.2f} | Smooth: {smooth:.2f}")
     return loss
 
-print("🔧 Optimizing...")
+print("Optimizing...")
 optimizer.step(closure)
-print("✅ Optimization complete.")
+print("Optimization complete.")
 
 # Evaluation
 with torch.no_grad():
     F_opt, tau_opt = compute_controls(x, lam)
     total_cost, _, dyn_loss, lam_loss, obs_loss, smooth_loss = compute_loss()
-    print(f"📈 Final Cost: {total_cost:.4f}, Obstacle Loss: {obs_loss:.4f}, Smoothness: {smooth_loss:.4f}")
+    print(f"Final Cost: {total_cost:.4f}, Obstacle Loss: {obs_loss:.4f}, Smoothness: {smooth_loss:.4f}")
 
 # Plot results
 x_np = x.detach().cpu().numpy()
