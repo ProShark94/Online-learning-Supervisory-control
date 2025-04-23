@@ -145,3 +145,5 @@ plt.tight_layout()
 plt.show()
 
 
+# Save the data
+torch.save({'x': x, 'F': F_opt, 'tau': tau_opt}, 'pmp_data.pt')
