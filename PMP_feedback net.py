@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 
-# === Load PMP trajectory data ===
+# loading data
 data = torch.load('pmp_data.pt')
 x_data = data['x'].detach()
 F_data = data['F'].detach()
@@ -11,16 +11,16 @@ u_data = torch.stack([F_data, tau_data], dim=1)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# === Normalize input states ===
+# input data
 x_mean = x_data.mean(0, keepdim=True)
 x_std = x_data.std(0, keepdim=True)
 x_norm = (x_data - x_mean) / (x_std + 1e-6)
 
-# === Add training noise for generalization ===
+# artificial noise
 noise = 0.01 * torch.randn_like(x_norm)
 x_aug = x_norm + noise
 
-# === Define neural network policy with safe clamping ===
+# network for learning feedback policy
 class NNPolicy(nn.Module):
     def __init__(self):
         super().__init__()
@@ -38,11 +38,11 @@ class NNPolicy(nn.Module):
         tau = torch.clamp(out[:, 1], -5.0, 5.0).unsqueeze(1)
         return torch.cat([F, tau], dim=1)
 
-# === Initialize model and RMSProp optimizer ===
+# init
 policy = NNPolicy().to(device)
 optimizer = torch.optim.RMSprop(policy.parameters(), lr=1e-3, alpha=0.99, eps=1e-8)
 
-# === Train the policy ===
+# Train
 states_tensor = x_aug.float().to(device)
 controls_tensor = u_data.float().to(device)
 
@@ -55,7 +55,7 @@ for epoch in range(1000):
     if epoch % 100 == 0:
         print(f"Epoch {epoch}: RMSProp Loss = {loss.item():.6f}")
 
-# === Inference policy wrapper with normalization ===
+
 def learned_feedback_policy(state):
     if not isinstance(state, torch.Tensor):
         state = torch.tensor(state, dtype=torch.float32).to(device)
@@ -67,7 +67,7 @@ def learned_feedback_policy(state):
         control = policy(norm_state).squeeze()
     return control[0].item(), control[1].item()
 
-# === Simulate trajectory rollout ===
+# simulate_policy function
 def simulate_policy(policy_fn, x0, T=5.0, N=200):
     dt = T / N
     m = 0.25
@@ -96,11 +96,10 @@ def simulate_policy(policy_fn, x0, T=5.0, N=200):
 
     return torch.stack(traj)
 
-# === Run learned feedback policy from x0 ===
+
 x0_val = torch.tensor([0.0, 0.0, 0.4, 0.0, 0.0, 0.0], device=device)
 rollout = simulate_policy(learned_feedback_policy, x0_val)
 
-# === Plot the learned trajectory ===
 rollout_np = rollout.cpu().numpy()
 plt.figure(figsize=(10, 4))
 plt.plot(rollout_np[:, 0], rollout_np[:, 1], label="Learned Feedback Trajectory")
@@ -112,7 +111,7 @@ plt.legend(); plt.grid()
 plt.tight_layout()
 plt.show()
 
-# === Plot control inputs ===
+#plotting control inputs
 with torch.no_grad():
     norm_states = (rollout - x_mean.to(device)) / (x_std.to(device) + 1e-6)
     u_traj = policy(norm_states).cpu().numpy()

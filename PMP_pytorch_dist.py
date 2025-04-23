@@ -15,7 +15,7 @@ tau_min, tau_max = -5.0, 5.0
 x0_val = torch.tensor([0.0, 0.0, 0.5, 0.0, 0.0, 0.0], device=device)
 goal_state = torch.tensor([5.0, 5.0, 0.0, 0.0, 0.0, 0.0], device=device)
 
-# ✨ Warped Initial Guess
+# Warped Initial Guess
 t_frac = torch.linspace(0, 1, N).to(device).unsqueeze(1)
 arc = 0.8 * torch.sin(torch.pi * t_frac).squeeze()
 x_init = x0_val + t_frac * (goal_state - x0_val)
